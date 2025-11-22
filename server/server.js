@@ -119,6 +119,15 @@ app.get('/', (req, res) => {
 });
 
 // Auth
+// Add GET handler for testing
+app.get('/api/login', (req, res) => {
+  res.status(405).json({ 
+    error: 'Method not allowed', 
+    message: 'Please use POST method for login',
+    allowedMethods: ['POST']
+  });
+});
+
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
@@ -134,6 +143,15 @@ app.post('/api/register', async (req, res) => {
   } catch (e) {
     res.status(400).json({ error: 'Email already exists' });
   }
+});
+
+// Add GET handler for testing
+app.get('/api/register', (req, res) => {
+  res.status(405).json({ 
+    error: 'Method not allowed', 
+    message: 'Please use POST method for registration',
+    allowedMethods: ['POST']
+  });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -422,7 +440,9 @@ app.post('/api/ai/chat', authenticateToken, async (req, res) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  // Server running on http://0.0.0.0:${PORT}
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ CORS enabled for: ${process.env.NODE_ENV === 'production' ? (process.env.ALLOWED_ORIGINS || 'GitHub Pages domains') : 'all origins'}`);
 });
 
 server.on('error', (err) => {
