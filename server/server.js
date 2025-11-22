@@ -46,42 +46,65 @@ app.use(express.json({ limit: '50mb' }));
 // Database Setup
 let db;
 (async () => {
-  db = await open({
-    filename: path.join(__dirname, 'database.sqlite'),
-    driver: sqlite3.Database
-  });
+  try {
+    console.log('📦 Initializing database...');
+    db = await open({
+      filename: path.join(__dirname, 'database.sqlite'),
+      driver: sqlite3.Database
+    });
+    console.log('✅ Database initialized successfully');
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE,
-      password TEXT,
-      nickname TEXT,
-      gender TEXT,
-      age INTEGER,
-      height INTEGER,
-      weight INTEGER,
-      activityLevel TEXT,
-      goal TEXT,
-      tdee INTEGER,
-      targetCalories INTEGER
-    );
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password TEXT,
+        nickname TEXT,
+        gender TEXT,
+        age INTEGER,
+        height INTEGER,
+        weight INTEGER,
+        activityLevel TEXT,
+        goal TEXT,
+        tdee INTEGER,
+        targetCalories INTEGER
+      );
 
-    CREATE TABLE IF NOT EXISTS diary_entries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER,
-      date TEXT,
-      type TEXT,
-      title TEXT,
-      description TEXT,
-      calories INTEGER,
-      time TEXT,
-      imageUrl TEXT,
-      ingredients TEXT,
-      FOREIGN KEY(userId) REFERENCES users(id)
-    );
-  `);
-  // Database initialized
+      CREATE TABLE IF NOT EXISTS diary_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        date TEXT,
+        type TEXT,
+        title TEXT,
+        description TEXT,
+        calories INTEGER,
+        time TEXT,
+        imageUrl TEXT,
+        ingredients TEXT,
+        FOREIGN KEY(userId) REFERENCES users(id)
+      );
+    `);
+    console.log('✅ Database tables created/verified');
+    
+    // Start server after database is ready
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+      console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ CORS enabled for: ${process.env.NODE_ENV === 'production' ? (process.env.ALLOWED_ORIGINS || 'GitHub Pages domains') : 'all origins'}`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use.`);
+        process.exit(1);
+      } else {
+        throw err;
+      }
+    });
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    process.exit(1);
+  }
 })();
 
 // Middleware: Verify Token
