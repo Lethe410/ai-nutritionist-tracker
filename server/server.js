@@ -27,7 +27,12 @@ const ai = new GoogleGenAI({ apiKey: API_KEY || 'dummy_key' });
 // CORS configuration - allow all origins in development, specific origins in production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.ALLOWED_ORIGINS?.split(',') || ['https://your-username.github.io']
+    ? process.env.ALLOWED_ORIGINS?.split(',') || [
+        'https://lethe410.github.io',
+        'https://lethe410.github.io/ai-nutritionist-tracker',
+        'http://localhost:5173',
+        'http://localhost:3000'
+      ]
     : true, // Allow all origins in development
   credentials: true
 };
