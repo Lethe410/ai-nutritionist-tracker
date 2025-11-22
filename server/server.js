@@ -126,6 +126,11 @@ const authenticateToken = (req, res, next) => {
 
 // --- Routes ---
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ 
