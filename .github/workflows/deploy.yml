@@ -36,8 +36,6 @@ jobs:
         env:
           NODE_ENV: production
           VITE_API_URL: ${{ secrets.VITE_API_URL || '/api' }}
-        continue-on-error: false
-        continue-on-error: false
       - name: List dist contents
         run: ls -la dist/ || echo "Build failed - dist directory not found"
 
