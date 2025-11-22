@@ -264,13 +264,27 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 
 // Diary
 app.get('/api/diary', authenticateToken, async (req, res) => {
-  const entries = await db.all('SELECT * FROM diary_entries WHERE userId = ? ORDER BY date DESC, time DESC', [req.user.id]);
-  const parsedEntries = entries.map(e => ({
-    ...e,
-    id: e.id.toString(),
-    ingredients: e.ingredients ? JSON.parse(e.ingredients) : []
-  }));
-  res.json(parsedEntries);
+  try {
+    if (!db) {
+      console.error('❌ Database not initialized');
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const entries = await db.all('SELECT * FROM diary_entries WHERE userId = ? ORDER BY date DESC, time DESC', [req.user.id]);
+    const parsedEntries = entries.map(e => ({
+      ...e,
+      id: e.id.toString(),
+      ingredients: e.ingredients ? JSON.parse(e.ingredients) : []
+    }));
+    res.json(parsedEntries);
+  } catch (error) {
+    console.error('❌ Diary fetch error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to fetch diary entries', 
+      details: error.message 
+    });
+  }
 });
 
 app.post('/api/diary', authenticateToken, async (req, res) => {
