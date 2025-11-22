@@ -520,17 +520,4 @@ app.post('/api/ai/chat', authenticateToken, async (req, res) => {
   }
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ CORS enabled for: ${process.env.NODE_ENV === 'production' ? (process.env.ALLOWED_ORIGINS || 'GitHub Pages domains') : 'all origins'}`);
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use.`);
-    process.exit(1);
-  } else {
-    throw err;
-  }
-});
+// Server startup is handled inside the database initialization block above
