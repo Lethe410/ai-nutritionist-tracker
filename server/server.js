@@ -98,11 +98,64 @@ let db;
         console.error(`❌ Port ${PORT} is already in use.`);
         process.exit(1);
       } else {
+        console.error('❌ Server error:', err);
         throw err;
       }
     });
+
+    // Global error handlers to prevent crashes
+    process.on('uncaughtException', (error) => {
+      console.error('❌ Uncaught Exception:', error);
+      console.error('Stack:', error.stack);
+      // Don't exit immediately, let Railway handle it
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('❌ Unhandled Rejection at:', promise);
+      console.error('Reason:', reason);
+      // Don't exit immediately, let Railway handle it
+    });
+
+    // Graceful shutdown handlers
+    process.on('SIGTERM', () => {
+      console.log('📴 SIGTERM received, shutting down gracefully...');
+      server.close(() => {
+        console.log('✅ Server closed');
+        if (db) {
+          db.close().then(() => {
+            console.log('✅ Database closed');
+            process.exit(0);
+          }).catch(err => {
+            console.error('❌ Error closing database:', err);
+            process.exit(1);
+          });
+        } else {
+          process.exit(0);
+        }
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('📴 SIGINT received, shutting down gracefully...');
+      server.close(() => {
+        console.log('✅ Server closed');
+        if (db) {
+          db.close().then(() => {
+            console.log('✅ Database closed');
+            process.exit(0);
+          }).catch(err => {
+            console.error('❌ Error closing database:', err);
+            process.exit(1);
+          });
+        } else {
+          process.exit(0);
+        }
+      });
+    });
+
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 })();
