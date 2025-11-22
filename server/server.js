@@ -37,6 +37,10 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS requests for CORS preflight
+app.options('*', cors(corsOptions));
+
 app.use(express.json({ limit: '50mb' }));
 
 // Database Setup
