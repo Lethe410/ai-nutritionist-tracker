@@ -23,15 +23,25 @@ export const api = {
         throw new Error('Invalid credentials');
       }
       
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (!res.ok) throw new Error('Login failed');
-      const data = await res.json();
-      localStorage.setItem('auth_token', data.token);
-      return data;
+      try {
+        const res = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `登入失敗 (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        localStorage.setItem('auth_token', data.token);
+        return data;
+      } catch (error: any) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          throw new Error('無法連接到後端伺服器。請確認後端已部署。');
+        }
+        throw error;
+      }
     },
     register: async (email: string, password: string) => {
        if (!ENABLE_BACKEND) {
@@ -43,15 +53,25 @@ export const api = {
           return { success: true };
        }
 
-       const res = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (!res.ok) throw new Error('Register failed');
-      const data = await res.json();
-      localStorage.setItem('auth_token', data.token);
-      return data;
+       try {
+         const res = await fetch(`${API_URL}/register`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ email, password })
+         });
+         if (!res.ok) {
+           const errorData = await res.json().catch(() => ({}));
+           throw new Error(errorData.error || `註冊失敗 (HTTP ${res.status})`);
+         }
+         const data = await res.json();
+         localStorage.setItem('auth_token', data.token);
+         return data;
+       } catch (error: any) {
+         if (error.name === 'TypeError' && error.message.includes('fetch')) {
+           throw new Error('無法連接到後端伺服器。請確認後端已部署。');
+         }
+         throw error;
+       }
     },
     logout: () => {
       localStorage.removeItem('auth_token');

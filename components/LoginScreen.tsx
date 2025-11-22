@@ -46,7 +46,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         onLogin();
     } catch (err: any) {
         console.error(err);
-        setError(isRegistering ? '註冊失敗 (信箱可能已被使用)' : '帳號或密碼錯誤');
+        const errorMsg = err?.message || '';
+        if (errorMsg.includes('fetch') || errorMsg.includes('連接') || errorMsg.includes('伺服器')) {
+            setError('無法連接到後端伺服器。請確認後端已部署並運行。如需幫助，請查看部署指南。');
+        } else if (isRegistering) {
+            setError('註冊失敗：' + (errorMsg || '信箱可能已被使用或伺服器未就緒'));
+        } else {
+            setError('登入失敗：' + (errorMsg || '帳號或密碼錯誤'));
+        }
     } finally {
         setIsLoading(false);
     }
