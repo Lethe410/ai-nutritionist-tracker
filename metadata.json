@@ -1,0 +1,7 @@
+{
+  "name": "AI Nutritionist Tracker",
+  "description": "A comprehensive calorie tracking and AI nutrition analysis application featuring daily monitoring, food recognition, dietary logs, and TDEE calculation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
