@@ -142,6 +142,30 @@ export const api = {
       }
       localStorage.removeItem('auth_token');
     },
+    loginWithGoogle: async () => {
+      if (USE_FIREBASE) {
+        const result = await apiFirebase.auth.loginWithGoogle();
+        // 同步獲取 Railway token（用於 AI 功能）
+        // 注意：社交登入沒有密碼，無法同步 Railway token
+        // AI 功能可能需要用戶手動設置密碼或使用其他方式
+        return result;
+      }
+      throw new Error('Google 登入僅支持 Firebase 模式');
+    },
+    loginWithFacebook: async () => {
+      if (USE_FIREBASE) {
+        const result = await apiFirebase.auth.loginWithFacebook();
+        return result;
+      }
+      throw new Error('Facebook 登入僅支持 Firebase 模式');
+    },
+    loginWithApple: async () => {
+      if (USE_FIREBASE) {
+        const result = await apiFirebase.auth.loginWithApple();
+        return result;
+      }
+      throw new Error('Apple 登入僅支持 Firebase 模式');
+    },
     isAuthenticated: () => {
       if (USE_FIREBASE) {
         return apiFirebase.auth.isAuthenticated();

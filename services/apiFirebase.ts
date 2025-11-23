@@ -6,7 +6,13 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   onAuthStateChanged,
-  User
+  User,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { 
   collection, 
@@ -98,6 +104,105 @@ export const apiFirebase = {
       } catch (error: any) {
         console.error('登出失敗:', error);
         throw new Error('登出失敗');
+      }
+    },
+    
+    // Google 登入
+    loginWithGoogle: async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        
+        // 創建或更新用戶資料
+        const userDoc = {
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName,
+          photoURL: userCredential.user.photoURL,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        };
+        await setDoc(doc(db, 'users', userCredential.user.uid), userDoc, { merge: true });
+        
+        return { success: true, user: userCredential.user };
+      } catch (error: any) {
+        console.error('Google 登入失敗:', error);
+        let errorMessage = 'Google 登入失敗';
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = '登入視窗已關閉';
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = '彈出視窗被阻擋，請允許彈出視窗';
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+    },
+    
+    // Facebook 登入
+    loginWithFacebook: async () => {
+      try {
+        const provider = new FacebookAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        
+        // 創建或更新用戶資料
+        const userDoc = {
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName,
+          photoURL: userCredential.user.photoURL,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        };
+        await setDoc(doc(db, 'users', userCredential.user.uid), userDoc, { merge: true });
+        
+        return { success: true, user: userCredential.user };
+      } catch (error: any) {
+        console.error('Facebook 登入失敗:', error);
+        let errorMessage = 'Facebook 登入失敗';
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = '登入視窗已關閉';
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = '彈出視窗被阻擋，請允許彈出視窗';
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+          errorMessage = '此電子郵件已使用其他方式註冊';
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+    },
+    
+    // Apple 登入
+    loginWithApple: async () => {
+      try {
+        const provider = new OAuthProvider('apple.com');
+        provider.addScope('email');
+        provider.addScope('name');
+        const userCredential = await signInWithPopup(auth, provider);
+        
+        // 創建或更新用戶資料
+        const userDoc = {
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName,
+          photoURL: userCredential.user.photoURL,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        };
+        await setDoc(doc(db, 'users', userCredential.user.uid), userDoc, { merge: true });
+        
+        return { success: true, user: userCredential.user };
+      } catch (error: any) {
+        console.error('Apple 登入失敗:', error);
+        let errorMessage = 'Apple 登入失敗';
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = '登入視窗已關閉';
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = '彈出視窗被阻擋，請允許彈出視窗';
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+          errorMessage = '此電子郵件已使用其他方式註冊';
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
     },
     
