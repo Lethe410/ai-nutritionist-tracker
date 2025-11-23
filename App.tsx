@@ -6,6 +6,7 @@ import ProfileScreen from './components/ProfileScreen';
 import OnboardingScreen from './components/OnboardingScreen';
 import LoginScreen from './components/LoginScreen';
 import AiChatScreen from './components/AiChatScreen';
+import Sidebar from './components/Sidebar';
 import { TabIcon } from './components/TabIcon';
 import { AppTab, MealEntry, UserProfile } from './types';
 import { MOCK_MEALS, MOCK_PROFILE } from './constants';
@@ -13,12 +14,14 @@ import { api } from './services/api';
 import { USE_FIREBASE } from './services/api';
 import { auth } from './services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Menu } from 'lucide-react';
 
 const App: React.FC = () => {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true); // 添加檢查狀態
   const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.OVERVIEW);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // State for App Data
   const [diaryEntries, setDiaryEntries] = useState<MealEntry[]>([]);
@@ -166,7 +169,33 @@ const App: React.FC = () => {
   
   return (
     <div className="max-w-md mx-auto bg-gray-50 min-h-screen relative shadow-2xl overflow-hidden font-sans flex flex-col">
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-24 pt-safe">
+      {/* 側邊欄 */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        profile={userProfile}
+        diaryEntries={diaryEntries}
+        currentTab={currentTab}
+        onNavigate={(tab) => setCurrentTab(tab)}
+        onLogout={handleLogout}
+      />
+
+      {/* 頂部菜單按鈕 */}
+      <div className="fixed top-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-sm z-30 pt-safe">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="打開側邊欄"
+          >
+            <Menu className="w-6 h-6 text-gray-700" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-800">NutriAI</h1>
+          <div className="w-10" /> {/* 佔位符，保持居中 */}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-24 pt-16">
         {renderScreen()}
       </div>
 
