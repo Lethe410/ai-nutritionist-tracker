@@ -32,10 +32,18 @@ const App: React.FC = () => {
     // 如果是 Firebase，需要等待認證狀態初始化
     if (USE_FIREBASE) {
       // 監聽 Firebase 認證狀態變化
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
         setIsCheckingAuth(false);
         if (user) {
           setIsLoggedIn(true);
+          // 如果沒有 Railway token，嘗試同步（用於 AI 功能）
+          const railwayToken = localStorage.getItem('auth_token');
+          if (!railwayToken && user.email) {
+            // 嘗試在 Railway 登入或註冊（使用相同的 email，但需要密碼）
+            // 注意：這裡無法獲取密碼，所以只能提示用戶重新登入
+            // 或者我們可以讓用戶在第一次使用 AI 功能時重新輸入密碼
+            console.log('Firebase 用戶已登入，但沒有 Railway token。AI 功能可能需要重新登入。');
+          }
           refreshData();
         } else {
           setIsLoggedIn(false);

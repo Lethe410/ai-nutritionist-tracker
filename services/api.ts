@@ -17,12 +17,52 @@ const getAuthHeaders = () => {
   return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 };
 
+// 當使用 Firebase 時，為 Railway 後端獲取/創建 token
+const syncRailwayToken = async (email: string, password: string) => {
+  if (!USE_FIREBASE || !ENABLE_BACKEND) return;
+  
+  try {
+    // 嘗試在 Railway 登入
+    const res = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('auth_token', data.token);
+      return;
+    }
+    
+    // 如果登入失敗，嘗試註冊
+    if (res.status === 401) {
+      const registerRes = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (registerRes.ok) {
+        const registerData = await registerRes.json();
+        localStorage.setItem('auth_token', registerData.token);
+      }
+    }
+  } catch (error) {
+    console.warn('同步 Railway token 失敗（AI 功能可能無法使用）:', error);
+    // 不拋出錯誤，因為 Firebase 認證已經成功
+  }
+};
+
 export const api = {
   auth: {
     login: async (email: string, password: string) => {
       // Use Firebase if enabled
       if (USE_FIREBASE) {
-        return apiFirebase.auth.login(email, password);
+        const result = await apiFirebase.auth.login(email, password);
+        // 同步獲取 Railway token（用於 AI 功能）
+        await syncRailwayToken(email, password);
+        return result;
       }
       
       if (!ENABLE_BACKEND) {
@@ -58,7 +98,10 @@ export const api = {
     register: async (email: string, password: string) => {
       // Use Firebase if enabled
       if (USE_FIREBASE) {
-        return apiFirebase.auth.register(email, password);
+        const result = await apiFirebase.auth.register(email, password);
+        // 同步獲取 Railway token（用於 AI 功能）
+        await syncRailwayToken(email, password);
+        return result;
       }
       
        if (!ENABLE_BACKEND) {
