@@ -60,7 +60,7 @@ const AiChatScreen: React.FC = () => {
         errorText = `錯誤：${errorMsg}`;
       }
       
-      const errorMessage: ChatMessage = {
+       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: errorText,

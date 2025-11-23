@@ -14,6 +14,7 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [mealType, setMealType] = useState<'Breakfast'|'Lunch'|'Dinner'|'Snack'>('Lunch');
   const [showMealSelector, setShowMealSelector] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Edit Modal State
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
@@ -128,9 +129,11 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
     return foodItems.reduce((sum, item) => sum + item.calories, 0);
   };
 
-  const handleSave = () => {
-    if (foodItems.length === 0) return;
+  const handleSave = async () => {
+    if (foodItems.length === 0 || isSaving) return;
 
+    setIsSaving(true);
+    try {
     const totalCalories = calculateTotal();
     const title = foodItems.map(f => f.name).slice(0, 3).join(', ') + (foodItems.length > 3 ? '...' : '');
     const description = foodItems.map(f => f.name).join(', ');
@@ -149,7 +152,13 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
       ingredients: foodItems
     };
 
-    onSave(newEntry);
+      await onSave(newEntry);
+    } catch (error: any) {
+      console.error('Save failed', error);
+      alert(`儲存失敗：${error?.message || '未知錯誤'}\n\n請確認：\n1. 已登入帳號\n2. 後端伺服器正在運行`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 1. Initial State: Upload
@@ -301,10 +310,20 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
       <div className="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-8 z-10 max-w-md mx-auto pointer-events-none">
         <button 
           onClick={handleSave}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-200 transition-transform active:scale-[0.98] flex items-center justify-center gap-2 pointer-events-auto"
+          disabled={isSaving || foodItems.length === 0}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-200 transition-transform active:scale-[0.98] flex items-center justify-center gap-2 pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
         >
+          {isSaving ? (
+            <>
+              <Loader2 size={20} className="animate-spin" />
+              <span>儲存中...</span>
+            </>
+          ) : (
+            <>
           <Check size={20} />
-          確認並儲存至日記
+              <span>確認並儲存至日記</span>
+            </>
+          )}
         </button>
       </div>
 

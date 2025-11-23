@@ -2,8 +2,15 @@ import { MealEntry, UserProfile } from '../types';
 
 // Switch to TRUE when running the backend server
 export const ENABLE_BACKEND = true;
+
+// Switch to TRUE to use Firebase instead of Railway backend
+export const USE_FIREBASE = true; // 設置為 true 以使用 Firebase
+
 // Use environment variable for API URL, fallback to relative path
 const API_URL = (import.meta.env?.VITE_API_URL as string) || '/api';
+
+// Import Firebase API (will be used if USE_FIREBASE is true)
+import { apiFirebase } from './apiFirebase';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth_token');
@@ -13,6 +20,11 @@ const getAuthHeaders = () => {
 export const api = {
   auth: {
     login: async (email: string, password: string) => {
+      // Use Firebase if enabled
+      if (USE_FIREBASE) {
+        return apiFirebase.auth.login(email, password);
+      }
+      
       if (!ENABLE_BACKEND) {
         // Mock Logic
         const stored = JSON.parse(localStorage.getItem('nutriai_users') || '{}');
@@ -44,6 +56,11 @@ export const api = {
       return data;
     },
     register: async (email: string, password: string) => {
+      // Use Firebase if enabled
+      if (USE_FIREBASE) {
+        return apiFirebase.auth.register(email, password);
+      }
+      
        if (!ENABLE_BACKEND) {
           const stored = JSON.parse(localStorage.getItem('nutriai_users') || '{}');
           if (stored[email]) throw new Error('Exists');
@@ -76,14 +93,25 @@ export const api = {
       localStorage.setItem('auth_token', data.token);
       return data;
     },
-    logout: () => {
+    logout: async () => {
+      if (USE_FIREBASE) {
+        return apiFirebase.auth.logout();
+      }
       localStorage.removeItem('auth_token');
     },
-    isAuthenticated: () => !!localStorage.getItem('auth_token')
+    isAuthenticated: () => {
+      if (USE_FIREBASE) {
+        return apiFirebase.auth.isAuthenticated();
+      }
+      return !!localStorage.getItem('auth_token');
+    }
   },
 
   user: {
     getProfile: async (): Promise<Partial<UserProfile>> => {
+      if (USE_FIREBASE) {
+        return apiFirebase.user.getProfile();
+      }
       if (!ENABLE_BACKEND) {
          return JSON.parse(localStorage.getItem('nutriai_profile') || '{}');
       }
@@ -91,6 +119,9 @@ export const api = {
       return res.ok ? res.json() : {};
     },
     updateProfile: async (profile: UserProfile) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.user.updateProfile(profile);
+      }
       if (!ENABLE_BACKEND) {
          localStorage.setItem('nutriai_profile', JSON.stringify(profile));
          return;
@@ -105,6 +136,9 @@ export const api = {
 
   diary: {
     getEntries: async (): Promise<MealEntry[]> => {
+      if (USE_FIREBASE) {
+        return apiFirebase.diary.getEntries();
+      }
       if (!ENABLE_BACKEND) {
         return JSON.parse(localStorage.getItem('nutriai_diary') || '[]');
       }
@@ -112,6 +146,9 @@ export const api = {
       return res.ok ? res.json() : [];
     },
     addEntry: async (entry: MealEntry) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.diary.addEntry(entry);
+      }
       if (!ENABLE_BACKEND) {
          const entries = JSON.parse(localStorage.getItem('nutriai_diary') || '[]');
          entries.unshift(entry);
@@ -128,6 +165,11 @@ export const api = {
 
   ai: {
     analyzeImage: async (base64Image: string) => {
+      // AI 功能始終使用 Railway（因為 Cloud Functions 需要 Blaze 計劃）
+      // 即使 USE_FIREBASE = true，認證和數據使用 Firebase，但 AI 使用 Railway
+      if (!ENABLE_BACKEND) {
+        return [];
+      }
       try {
         const res = await fetch(`${API_URL}/ai/analyze`, {
           method: 'POST',
@@ -167,6 +209,10 @@ export const api = {
       }
     },
     estimateNutrition: async (name: string, portion: string) => {
+      // AI 功能始終使用 Railway
+      if (!ENABLE_BACKEND) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
       try {
         const res = await fetch(`${API_URL}/ai/estimate`, {
           method: 'POST',
@@ -206,6 +252,10 @@ export const api = {
       }
     },
     chat: async (message: string) => {
+      // AI 功能始終使用 Railway
+      if (!ENABLE_BACKEND) {
+        return "抱歉，AI 功能需要後端支持";
+      }
       try {
         const res = await fetch(`${API_URL}/ai/chat`, {
           method: 'POST',

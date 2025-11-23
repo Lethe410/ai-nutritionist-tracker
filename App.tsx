@@ -10,10 +10,14 @@ import { TabIcon } from './components/TabIcon';
 import { AppTab, MealEntry, UserProfile } from './types';
 import { MOCK_MEALS, MOCK_PROFILE } from './constants';
 import { api } from './services/api';
+import { USE_FIREBASE } from './services/api';
+import { auth } from './services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const App: React.FC = () => {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // 添加檢查狀態
   const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.OVERVIEW);
   
   // State for App Data
@@ -25,9 +29,27 @@ const App: React.FC = () => {
     const onboarded = localStorage.getItem('nutriai_onboarded');
     if (onboarded) setHasCompletedOnboarding(true);
 
-    if (api.auth.isAuthenticated()) {
-      setIsLoggedIn(true);
-      refreshData();
+    // 如果是 Firebase，需要等待認證狀態初始化
+    if (USE_FIREBASE) {
+      // 監聽 Firebase 認證狀態變化
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setIsCheckingAuth(false);
+        if (user) {
+          setIsLoggedIn(true);
+          refreshData();
+        } else {
+          setIsLoggedIn(false);
+        }
+      });
+      
+      return () => unsubscribe();
+    } else {
+      // 非 Firebase 模式，直接檢查
+      setIsCheckingAuth(false);
+      if (api.auth.isAuthenticated()) {
+        setIsLoggedIn(true);
+        refreshData();
+      }
     }
   }, []);
 
@@ -93,6 +115,18 @@ const App: React.FC = () => {
 
   if (!hasCompletedOnboarding) {
     return <OnboardingScreen onComplete={handleCompleteOnboarding} />;
+  }
+
+  // 等待認證狀態檢查完成
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">載入中...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isLoggedIn) {
