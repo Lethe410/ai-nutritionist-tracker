@@ -57,9 +57,9 @@ const App: React.FC = () => {
     } else {
       // 非 Firebase 模式，直接檢查
       setIsCheckingAuth(false);
-      if (api.auth.isAuthenticated()) {
-        setIsLoggedIn(true);
-        refreshData();
+    if (api.auth.isAuthenticated()) {
+      setIsLoggedIn(true);
+      refreshData();
       }
     }
   }, []);
@@ -195,28 +195,48 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-24 pt-16">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32 pt-16">
         {renderScreen()}
       </div>
 
-      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 pb-safe">
-        <div className="flex justify-around items-center h-16">
-          {Object.values(AppTab).map((tab) => (
+      {/* Glassmorphism Floating Bottom Navigation */}
+      <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-50 pointer-events-none pb-safe">
+        <div className="w-full max-w-[calc(100%-32px)] md:max-w-[400px] bg-emerald-50/65 backdrop-blur-2xl border border-emerald-100/60 shadow-[0_18px_45px_-20px_rgba(16,185,129,0.65)] rounded-[32px] h-[72px] px-1 flex justify-between items-center pointer-events-auto">
+          {Object.values(AppTab).map((tab) => {
+            const isActive = currentTab === tab;
+            return (
              <button 
                 key={tab}
                 onClick={() => setCurrentTab(tab)}
-                className="flex flex-col items-center justify-center w-full h-full space-y-1 active:bg-gray-50 transition-colors"
+                className="flex-1 flex flex-col items-center justify-center h-full relative group"
               >
-                <TabIcon tab={tab} isActive={currentTab === tab} />
-                <span className={`text-[10px] font-medium ${currentTab === tab ? 'text-green-500' : 'text-gray-400'}`}>
+                <div
+                  className={`
+                    flex flex-col items-center justify-center gap-1 rounded-full transition-all duration-300 ease-out px-4 py-2
+                    ${isActive
+                      ? 'bg-gradient-to-br from-emerald-100/85 to-emerald-200/60 border border-emerald-200/70 backdrop-blur-xl shadow-[0_12px_25px_-14px_rgba(16,185,129,0.6)] -translate-y-1.5'
+                      : 'bg-transparent text-emerald-900/70 group-active:scale-95'}
+                  `}
+                >
+                  <div className={`${isActive ? 'text-emerald-900' : 'text-slate-600/80'}`}>
+                    <TabIcon tab={tab} isActive={isActive} />
+                  </div>
+                  <span
+                    className={`
+                      text-[10px] font-semibold tracking-wide
+                      ${isActive ? 'text-emerald-900' : 'text-emerald-900/70'}
+                    `}
+                  >
                     {tab === AppTab.OVERVIEW && '總覽'}
-                    {tab === AppTab.AI_CHAT && 'AI 聊天'}
+                    {tab === AppTab.AI_CHAT && 'AI聊天'}
                     {tab === AppTab.RECORD && '記錄'}
                     {tab === AppTab.DIARY && '日記'}
                     {tab === AppTab.PROFILE && '設定'}
-                </span>
+                  </span>
+                </div>
               </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

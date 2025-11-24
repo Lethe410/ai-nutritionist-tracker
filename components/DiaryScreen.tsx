@@ -35,7 +35,10 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
   return (
     <div className="p-4 pb-24 min-h-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">飲食日記</h2>
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Daily Log</p>
+          <h2 className="text-2xl font-bold text-gray-800">飲食日記</h2>
+        </div>
       </div>
 
       {sortedDates.length === 0 ? (
@@ -50,12 +53,12 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
             
             return (
               <div key={date}>
-                <div className="flex justify-between items-center mb-4 sticky top-0 bg-gray-50/95 backdrop-blur-sm py-2 z-10">
-                  <div className="px-4 py-1.5 bg-gray-200 rounded-full text-sm font-semibold text-gray-600">
+                <div className="flex justify-between items-center mb-4 sticky top-0 bg-white/60 backdrop-blur-2xl border border-white/30 shadow-sm px-4 py-2 rounded-2xl z-10">
+                  <div className="px-4 py-1.5 bg-emerald-50/80 text-emerald-700 rounded-full text-xs font-semibold tracking-wide">
                     {date}
                   </div>
-                  <div className="text-sm font-medium text-gray-500">
-                    當日總計: <span className="text-green-600 font-bold text-lg">{dayTotal}</span> kcal
+                  <div className="text-sm font-medium text-emerald-900">
+                    當日總計 <span className="text-emerald-600 font-bold text-lg">{dayTotal}</span> kcal
                   </div>
                 </div>
 
@@ -64,14 +67,15 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
                     <div 
                       key={meal.id} 
                       onClick={() => setSelectedEntry(meal)}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors active:scale-[0.99]"
+                      className="bg-white/70 backdrop-blur-2xl rounded-[24px] p-3 shadow-[0_25px_50px_-25px_rgba(30,41,59,0.6)] border border-white/60 flex gap-4 cursor-pointer hover:-translate-y-1 transition-all active:scale-[0.99]"
                     >
-                      <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                      <div className="w-24 h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-gray-100 relative">
                         <img 
                           src={meal.imageUrl} 
                           alt={meal.title} 
                           className="w-full h-full object-cover"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       
                       <div className="flex-1 py-1 min-w-0 flex flex-col justify-between">
@@ -85,9 +89,9 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
                             }`}>
                               {getMealLabel(meal.type)}
                             </span>
-                            <div className="flex items-center text-xs text-gray-400">
-                              <Clock size={12} className="mr-1" />
-                              {meal.time}
+                            <div className="flex items-center text-xs text-emerald-700 bg-emerald-50/80 px-2 py-0.5 rounded-full gap-1">
+                              <Clock size={12} />
+                              <span className="font-semibold">{meal.time}</span>
                             </div>
                           </div>
                           
@@ -97,11 +101,11 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
                         </div>
                         
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center text-orange-500 font-bold text-sm">
+                            <div className="flex items-center text-orange-500 font-bold text-sm bg-orange-50/70 px-3 py-1 rounded-full">
                               <Flame size={14} className="mr-1" />
                               {meal.calories} <span className="text-gray-400 font-normal ml-1 text-xs">kcal</span>
                             </div>
-                            <ChevronRight size={16} className="text-gray-300" />
+                            <ChevronRight size={18} className="text-gray-300" />
                         </div>
                       </div>
                     </div>

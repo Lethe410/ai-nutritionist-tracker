@@ -8,7 +8,8 @@ interface TabIconProps {
 }
 
 export const TabIcon: React.FC<TabIconProps> = ({ tab, isActive }) => {
-  const color = isActive ? '#22c55e' : '#9ca3af'; // green-500 vs gray-400
+  // 透明綠色主題：啟動時使用深綠，未啟動則為石板灰。
+  const color = isActive ? '#064e3b' : '#1e293b';
   const size = 24;
 
   switch (tab) {
