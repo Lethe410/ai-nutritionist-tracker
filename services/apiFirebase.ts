@@ -430,6 +430,15 @@ export const apiFirebase = {
         const userId = await getCurrentUserId();
         console.log('新增日記，用戶ID:', userId, '日記:', entry);
         
+        // 檢查圖片大小（如果圖片是 base64）
+        if (entry.imageUrl && entry.imageUrl.startsWith('data:image')) {
+          const imageSize = entry.imageUrl.length;
+          if (imageSize > 1000000) { // 約 1MB
+            console.warn(`圖片大小 ${(imageSize / 1024 / 1024).toFixed(2)}MB，可能超過 Firestore 限制`);
+            // 不直接拋錯，讓 Firestore 自己處理，但記錄警告
+          }
+        }
+        
         const docRef = await addDoc(collection(db, 'diary_entries'), {
           userId: userId,
           date: entry.date,
@@ -448,7 +457,21 @@ export const apiFirebase = {
       } catch (error: any) {
         console.error('新增日記失敗:', error);
         console.error('錯誤詳情:', error.message, error.code);
-        throw new Error(`新增日記失敗: ${error.message || '未知錯誤'}`);
+        
+        // 提供更具體的錯誤訊息
+        let errorMessage = error.message || '未知錯誤';
+        
+        if (error.code === 'failed-precondition') {
+          errorMessage = '資料庫索引尚未建立，請稍後再試';
+        } else if (error.code === 'permission-denied') {
+          errorMessage = '沒有儲存權限，請確認已登入帳號';
+        } else if (error.message?.includes('Payload too large') || error.message?.includes('size')) {
+          errorMessage = '圖片檔案太大，請嘗試使用較小的圖片';
+        } else if (error.code === 'unavailable') {
+          errorMessage = '服務暫時不可用，請稍後再試';
+        }
+        
+        throw new Error(`新增日記失敗: ${errorMessage}`);
       }
     }
   },
