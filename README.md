@@ -69,3 +69,6 @@ See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
 - Ensure phone and computer are on the same Wi-Fi network
 - Check Windows Firewall settings for ports 5173 and 3001
 - Use the computer's local IP address: `http://YOUR_IP:5173`
+
+## Environment variables
+- `VITE_API_URL` – set this to your deployed backend URL, e.g. `https://<your-railway-service>.up.railway.app`
