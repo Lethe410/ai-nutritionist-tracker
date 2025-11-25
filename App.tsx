@@ -6,10 +6,11 @@ import ProfileScreen from './components/ProfileScreen';
 import OnboardingScreen from './components/OnboardingScreen';
 import LoginScreen from './components/LoginScreen';
 import AiChatScreen from './components/AiChatScreen';
+import MusicScreen from './components/MusicScreen';
 import Sidebar from './components/Sidebar';
 import { TabIcon } from './components/TabIcon';
 import { AppTab, MealEntry, UserProfile } from './types';
-import { MOCK_MEALS, MOCK_PROFILE } from './constants';
+import { MOCK_PROFILE } from './constants';
 import { api } from './services/api';
 import { USE_FIREBASE } from './services/api';
 import { auth } from './services/firebase';
@@ -154,6 +155,8 @@ const App: React.FC = () => {
         return <RecordScreen onSave={handleAddEntry} />;
       case AppTab.DIARY:
         return <DiaryScreen entries={diaryEntries} />;
+      case AppTab.MUSIC:
+        return <MusicScreen />;
       case AppTab.PROFILE:
         return (
           <ProfileScreen 
@@ -208,13 +211,12 @@ const App: React.FC = () => {
              <button 
                 key={tab}
                 onClick={() => setCurrentTab(tab)}
-                className="flex-1 flex flex-col items-center justify-center h-full relative group"
+                className="flex-1 flex flex-col items-center justify-between h-full relative group px-1"
               >
                 <div
-                  className={`
-                    flex flex-col items-center justify-center gap-1 rounded-full transition-all duration-300 ease-out px-4 py-2
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-300 ease-out w-full py-2
                     ${isActive
-                      ? 'bg-gradient-to-br from-emerald-100/85 to-emerald-200/60 border border-emerald-200/70 backdrop-blur-xl shadow-[0_12px_25px_-14px_rgba(16,185,129,0.6)] -translate-y-1.5'
+                      ? 'bg-gradient-to-br from-emerald-100/85 to-emerald-200/60 border border-emerald-200/70 backdrop-blur-xl shadow-[0_12px_25px_-14px_rgba(16,185,129,0.6)] -translate-y-1'
                       : 'bg-transparent text-emerald-900/70 group-active:scale-95'}
                   `}
                 >
@@ -222,8 +224,7 @@ const App: React.FC = () => {
                     <TabIcon tab={tab} isActive={isActive} />
                   </div>
                   <span
-                    className={`
-                      text-[10px] font-semibold tracking-wide
+                    className={`text-[10px] font-semibold tracking-wide leading-none text-center whitespace-nowrap
                       ${isActive ? 'text-emerald-900' : 'text-emerald-900/70'}
                     `}
                   >
@@ -231,8 +232,9 @@ const App: React.FC = () => {
                     {tab === AppTab.AI_CHAT && 'AI聊天'}
                     {tab === AppTab.RECORD && '記錄'}
                     {tab === AppTab.DIARY && '日記'}
+                    {tab === AppTab.MUSIC && '音樂'}
                     {tab === AppTab.PROFILE && '設定'}
-                  </span>
+                </span>
                 </div>
               </button>
             );

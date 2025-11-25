@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, LogOut, Home, MessageSquare, Camera, BookOpen, Settings, TrendingUp } from 'lucide-react';
+import { X, User, LogOut, Home, MessageSquare, Camera, BookOpen, Settings, TrendingUp, Music2 } from 'lucide-react';
 import { UserProfile, MealEntry, AppTab } from '../types';
 
 interface SidebarProps {
@@ -55,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { tab: AppTab.AI_CHAT, icon: MessageSquare, label: 'AI 聊天' },
     { tab: AppTab.RECORD, icon: Camera, label: '記錄' },
     { tab: AppTab.DIARY, icon: BookOpen, label: '日記' },
+    { tab: AppTab.MUSIC, icon: Music2, label: '音樂' },
     { tab: AppTab.PROFILE, icon: Settings, label: '設定' },
   ];
 

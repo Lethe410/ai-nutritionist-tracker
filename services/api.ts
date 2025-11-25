@@ -1,4 +1,4 @@
-import { MealEntry, UserProfile } from '../types';
+import { MealEntry, MusicTrack, MoodType, UserProfile } from '../types';
 
 // Switch to TRUE when running the backend server
 export const ENABLE_BACKEND = true;
@@ -356,6 +356,28 @@ export const api = {
         }
         return `錯誤：${error.message || '未知錯誤'}`;
       }
+    }
+  },
+
+  music: {
+    getRecommendations: async (mood: MoodType): Promise<MusicTrack[]> => {
+      if (!ENABLE_BACKEND) {
+        return [];
+      }
+      const res = await fetch(`${API_URL}/music/recommendations?mood=${mood}`, {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        let errorMessage = '無法取得歌曲推薦';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // 非 JSON 回應，忽略細節
+        }
+        throw new Error(errorMessage);
+      }
+      return res.json();
     }
   }
 };

@@ -3,6 +3,7 @@ import { AI_ADVICE } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Sparkles } from 'lucide-react';
 import { MealEntry, UserProfile } from '../types';
+import { api } from '../services/api';
 
 interface OverviewScreenProps {
   diaryEntries: MealEntry[];
@@ -77,14 +78,14 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ diaryEntries, profile }
           </div>
           <span className="text-sm text-white/70 mb-1"> / {todayStats.target || '—'} kcal</span>
         </div>
-
+        
         <div className="w-full h-4 bg-white/20 rounded-full overflow-hidden relative z-10 mb-3">
           <div 
             className="h-full rounded-full bg-white/90 shadow-[0_8px_20px_-10px_rgba(255,255,255,0.9)] transition-all duration-500 ease-out" 
             style={{ width: `${todayStats.percentage}%` }}
           ></div>
         </div>
-
+        
         <div className="grid grid-cols-2 gap-3 text-sm relative z-10">
           <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-md">
             <p className="text-white/70 text-xs mb-1">剩餘熱量</p>
@@ -171,6 +172,7 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ diaryEntries, profile }
             : AI_ADVICE}
         </p>
       </div>
+
     </div>
   );
 };

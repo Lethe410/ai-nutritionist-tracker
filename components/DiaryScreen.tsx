@@ -37,7 +37,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ entries }) => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Daily Log</p>
-          <h2 className="text-2xl font-bold text-gray-800">飲食日記</h2>
+        <h2 className="text-2xl font-bold text-gray-800">飲食日記</h2>
         </div>
       </div>
 

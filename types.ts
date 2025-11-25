@@ -3,6 +3,7 @@ export enum AppTab {
   AI_CHAT = 'ai_chat',
   RECORD = 'record',
   DIARY = 'diary',
+  MUSIC = 'music',
   PROFILE = 'profile'
 }
 
@@ -55,4 +56,15 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
+}
+
+export type MoodType = 'happy' | 'focus' | 'relaxed' | 'calm' | 'energetic' | 'sad';
+
+export interface MusicTrack {
+  id: string;
+  name: string;
+  artist: string;
+  albumImage: string;
+  spotifyUrl: string;
+  previewUrl: string | null;
 }
