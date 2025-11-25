@@ -71,4 +71,4 @@ See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
 - Use the computer's local IP address: `http://YOUR_IP:5173`
 
 ## Environment variables
-- `VITE_API_URL` – set this to your deployed backend URL, e.g. `https://<your-railway-service>.up.railway.app`
+- `VITE_API_URL` – set this to your deployed backend URL, e.g. `https://your-service.up.railway.app` (must include `https://`)
