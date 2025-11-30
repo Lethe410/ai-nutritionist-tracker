@@ -7,6 +7,7 @@ import OnboardingScreen from './components/OnboardingScreen';
 import LoginScreen from './components/LoginScreen';
 import AiChatScreen from './components/AiChatScreen';
 import MusicScreen from './components/MusicScreen';
+import MoodBoardScreen from './components/MoodBoardScreen';
 import Sidebar from './components/Sidebar';
 import { TabIcon } from './components/TabIcon';
 import { AppTab, MealEntry, UserProfile } from './types';
@@ -157,6 +158,8 @@ const App: React.FC = () => {
         return <DiaryScreen entries={diaryEntries} />;
       case AppTab.MUSIC:
         return <MusicScreen />;
+      case AppTab.MOOD_BOARD:
+        return <MoodBoardScreen />;
       case AppTab.PROFILE:
         return (
           <ProfileScreen 
@@ -233,6 +236,7 @@ const App: React.FC = () => {
                     {tab === AppTab.RECORD && '記錄'}
                     {tab === AppTab.DIARY && '日記'}
                     {tab === AppTab.MUSIC && '音樂'}
+                    {tab === AppTab.MOOD_BOARD && '留言'}
                     {tab === AppTab.PROFILE && '設定'}
                 </span>
                 </div>

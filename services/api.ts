@@ -1,4 +1,4 @@
-import { MealEntry, MusicTrack, MoodType, UserProfile } from '../types';
+import { MealEntry, MusicTrack, MoodType, UserProfile, MoodBoardPost, EmojiType } from '../types';
 
 // Switch to TRUE when running the backend server
 export const ENABLE_BACKEND = true;
@@ -378,6 +378,126 @@ export const api = {
         throw new Error(errorMessage);
       }
       return res.json();
+    }
+  },
+
+  moodBoard: {
+    getPosts: async (): Promise<MoodBoardPost[]> => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.getPosts();
+      }
+      if (!ENABLE_BACKEND) {
+        return JSON.parse(localStorage.getItem('nutriai_mood_board') || '[]');
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts`, {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error('載入留言失敗');
+      }
+      const data = await res.json();
+      return data.map((post: any) => ({
+        ...post,
+        createdAt: new Date(post.createdAt)
+      }));
+    },
+
+    createPost: async (post: { emoji: EmojiType; content: string }) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.createPost(post);
+      }
+      if (!ENABLE_BACKEND) {
+        const posts = JSON.parse(localStorage.getItem('nutriai_mood_board') || '[]');
+        const newPost: MoodBoardPost = {
+          id: Date.now().toString(),
+          userId: 'mock_user',
+          userNickname: '匿名',
+          emoji: post.emoji,
+          content: post.content,
+          likes: 0,
+          likedBy: [],
+          createdAt: new Date()
+        };
+        posts.unshift(newPost);
+        localStorage.setItem('nutriai_mood_board', JSON.stringify(posts));
+        return newPost.id;
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(post)
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || '發布失敗');
+      }
+      return (await res.json()).id;
+    },
+
+    likePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.likePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        const posts = JSON.parse(localStorage.getItem('nutriai_mood_board') || '[]');
+        const post = posts.find((p: MoodBoardPost) => p.id === postId);
+        if (post && !post.likedBy.includes('mock_user')) {
+          post.likes += 1;
+          post.likedBy.push('mock_user');
+          localStorage.setItem('nutriai_mood_board', JSON.stringify(posts));
+        }
+        return;
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/like`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error('點讚失敗');
+      }
+    },
+
+    unlikePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.unlikePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        const posts = JSON.parse(localStorage.getItem('nutriai_mood_board') || '[]');
+        const post = posts.find((p: MoodBoardPost) => p.id === postId);
+        if (post && post.likedBy.includes('mock_user')) {
+          post.likes = Math.max(0, post.likes - 1);
+          post.likedBy = post.likedBy.filter((id: string) => id !== 'mock_user');
+          localStorage.setItem('nutriai_mood_board', JSON.stringify(posts));
+        }
+        return;
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/unlike`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error('取消讚失敗');
+      }
+    },
+
+    deletePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.deletePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        const posts = JSON.parse(localStorage.getItem('nutriai_mood_board') || '[]');
+        const filteredPosts = posts.filter((p: MoodBoardPost) => p.id !== postId);
+        localStorage.setItem('nutriai_mood_board', JSON.stringify(filteredPosts));
+        return;
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || '刪除失敗');
+      }
     }
   }
 };

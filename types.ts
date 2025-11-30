@@ -4,6 +4,7 @@ export enum AppTab {
   RECORD = 'record',
   DIARY = 'diary',
   MUSIC = 'music',
+  MOOD_BOARD = 'mood_board',
   PROFILE = 'profile'
 }
 
@@ -67,4 +68,19 @@ export interface MusicTrack {
   albumImage: string;
   spotifyUrl: string;
   previewUrl: string | null;
+}
+
+export type EmojiType = '😊' | '😢' | '😴' | '😤' | '😌' | '🤔' | '😍' | '🥳' | '😎' | '😭' | '😡' | '🤗';
+
+export interface MoodBoardPost {
+  id: string;
+  userId: string;
+  userNickname: string;
+  emoji: EmojiType;
+  content: string;
+  likes: number;
+  likedBy: string[]; // Array of user IDs who liked
+  isLiked?: boolean; // Optional: whether current user liked (from backend)
+  isOwner?: boolean; // Optional: whether current user is the owner (from backend)
+  createdAt: Date | string;
 }

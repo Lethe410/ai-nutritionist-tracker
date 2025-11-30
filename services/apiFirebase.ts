@@ -28,7 +28,7 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from './firebase';
-import { MealEntry, UserProfile } from '../types';
+import { MealEntry, UserProfile, MoodBoardPost, EmojiType } from '../types';
 
 // 等待認證狀態
 const waitForAuth = (): Promise<User | null> => {
@@ -527,6 +527,133 @@ export const apiFirebase = {
           errorMessage = error.message;
         }
         return `錯誤：${errorMessage}`;
+      }
+    }
+  },
+
+  moodBoard: {
+    getPosts: async (): Promise<MoodBoardPost[]> => {
+      try {
+        const currentUserId = await getCurrentUserId();
+        const q = query(
+          collection(db, 'mood_board_posts'),
+          orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            userId: data.userId,
+            userNickname: data.userNickname || '匿名',
+            emoji: data.emoji,
+            content: data.content,
+            likes: data.likes || 0,
+            likedBy: data.likedBy || [],
+            isLiked: (data.likedBy || []).includes(currentUserId),
+            isOwner: data.userId === currentUserId,
+            createdAt: data.createdAt?.toDate() || new Date()
+          } as MoodBoardPost;
+        });
+      } catch (error: any) {
+        console.error('載入留言失敗:', error);
+        throw new Error('載入留言失敗');
+      }
+    },
+
+    createPost: async (post: { emoji: EmojiType; content: string }) => {
+      try {
+        const userId = await getCurrentUserId();
+        const profile = await apiFirebase.user.getProfile();
+        const userNickname = profile.nickname || '匿名';
+
+        const docRef = await addDoc(collection(db, 'mood_board_posts'), {
+          userId: userId,
+          userNickname: userNickname,
+          emoji: post.emoji,
+          content: post.content,
+          likes: 0,
+          likedBy: [],
+          createdAt: Timestamp.now()
+        });
+
+        return docRef.id;
+      } catch (error: any) {
+        console.error('發布留言失敗:', error);
+        throw new Error('發布留言失敗');
+      }
+    },
+
+    likePost: async (postId: string) => {
+      try {
+        const userId = await getCurrentUserId();
+        const postRef = doc(db, 'mood_board_posts', postId);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+          throw new Error('留言不存在');
+        }
+
+        const data = postSnap.data();
+        const likedBy = data.likedBy || [];
+
+        if (likedBy.includes(userId)) {
+          return; // 已經點過讚
+        }
+
+        await setDoc(postRef, {
+          likes: (data.likes || 0) + 1,
+          likedBy: [...likedBy, userId]
+        }, { merge: true });
+      } catch (error: any) {
+        console.error('點讚失敗:', error);
+        throw new Error('點讚失敗');
+      }
+    },
+
+    unlikePost: async (postId: string) => {
+      try {
+        const userId = await getCurrentUserId();
+        const postRef = doc(db, 'mood_board_posts', postId);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+          throw new Error('留言不存在');
+        }
+
+        const data = postSnap.data();
+        const likedBy = (data.likedBy || []).filter((id: string) => id !== userId);
+
+        await setDoc(postRef, {
+          likes: Math.max(0, (data.likes || 0) - 1),
+          likedBy: likedBy
+        }, { merge: true });
+      } catch (error: any) {
+        console.error('取消讚失敗:', error);
+        throw new Error('取消讚失敗');
+      }
+    },
+
+    deletePost: async (postId: string) => {
+      try {
+        const userId = await getCurrentUserId();
+        const postRef = doc(db, 'mood_board_posts', postId);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+          throw new Error('留言不存在');
+        }
+
+        const data = postSnap.data();
+        // 只允許作者刪除自己的留言
+        if (data.userId !== userId) {
+          throw new Error('無權限刪除此留言');
+        }
+
+        await postRef.delete();
+      } catch (error: any) {
+        console.error('刪除留言失敗:', error);
+        throw new Error(error.message || '刪除留言失敗');
       }
     }
   }

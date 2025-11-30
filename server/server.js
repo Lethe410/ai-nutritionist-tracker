@@ -220,6 +220,18 @@ let db;
       ingredients TEXT,
       FOREIGN KEY(userId) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS mood_board_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
+      userNickname TEXT,
+      emoji TEXT,
+      content TEXT,
+      likes INTEGER DEFAULT 0,
+      likedBy TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(userId) REFERENCES users(id)
+    );
   `);
     console.log('✅ Database tables created/verified');
     
@@ -718,6 +730,161 @@ app.get('/api/music/recommendations', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Spotify recommendation error:', error);
     return res.status(500).json({ error: '無法從 Spotify 取得歌曲推薦', details: error.message });
+  }
+});
+
+// Mood Board
+app.get('/api/mood-board/posts', authenticateToken, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const currentUserId = req.user.id.toString();
+    const posts = await db.all(
+      'SELECT * FROM mood_board_posts ORDER BY createdAt DESC LIMIT 100'
+    );
+
+    const formattedPosts = posts.map(post => {
+      const likedBy = post.likedBy ? JSON.parse(post.likedBy) : [];
+      return {
+        id: post.id.toString(),
+        userId: post.userId.toString(),
+        userNickname: post.userNickname || '匿名',
+        emoji: post.emoji,
+        content: post.content,
+        likes: post.likes || 0,
+        likedBy: likedBy,
+        isLiked: likedBy.includes(currentUserId), // 標記當前用戶是否已點讚
+        isOwner: post.userId === req.user.id, // 標記是否為當前用戶的留言
+        createdAt: post.createdAt
+      };
+    });
+
+    res.json(formattedPosts);
+  } catch (error) {
+    console.error('❌ Mood board fetch error:', error);
+    res.status(500).json({ error: '載入留言失敗', details: error.message });
+  }
+});
+
+app.post('/api/mood-board/posts', authenticateToken, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const { emoji, content } = req.body;
+
+    if (!emoji || !content || !content.trim()) {
+      return res.status(400).json({ error: '請提供情緒和內容' });
+    }
+
+    // 取得用戶資料
+    const profile = await db.get('SELECT nickname FROM profiles WHERE user_id = ?', [req.user.id]);
+    const userNickname = profile?.nickname || '匿名';
+
+    const result = await db.run(
+      'INSERT INTO mood_board_posts (userId, userNickname, emoji, content, likes, likedBy) VALUES (?, ?, ?, ?, 0, ?)',
+      [req.user.id, userNickname, emoji, content.trim(), JSON.stringify([])]
+    );
+
+    res.json({ success: true, id: result.lastID });
+  } catch (error) {
+    console.error('❌ Mood board create error:', error);
+    res.status(500).json({ error: '發布失敗', details: error.message });
+  }
+});
+
+app.post('/api/mood-board/posts/:id/like', authenticateToken, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const postId = parseInt(req.params.id);
+    const userId = req.user.id;
+
+    const post = await db.get('SELECT * FROM mood_board_posts WHERE id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: '留言不存在' });
+    }
+
+    const likedBy = post.likedBy ? JSON.parse(post.likedBy) : [];
+    if (likedBy.includes(userId.toString())) {
+      return res.json({ success: true, message: '已經點過讚' });
+    }
+
+    likedBy.push(userId.toString());
+    await db.run(
+      'UPDATE mood_board_posts SET likes = ?, likedBy = ? WHERE id = ?',
+      [(post.likes || 0) + 1, JSON.stringify(likedBy), postId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Mood board like error:', error);
+    res.status(500).json({ error: '點讚失敗', details: error.message });
+  }
+});
+
+app.post('/api/mood-board/posts/:id/unlike', authenticateToken, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const postId = parseInt(req.params.id);
+    const userId = req.user.id;
+
+    const post = await db.get('SELECT * FROM mood_board_posts WHERE id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: '留言不存在' });
+    }
+
+    const likedBy = post.likedBy ? JSON.parse(post.likedBy) : [];
+    if (!likedBy.includes(userId.toString())) {
+      return res.json({ success: true, message: '尚未點讚' });
+    }
+
+    const newLikedBy = likedBy.filter((id) => id !== userId.toString());
+    await db.run(
+      'UPDATE mood_board_posts SET likes = ?, likedBy = ? WHERE id = ?',
+      [Math.max(0, (post.likes || 0) - 1), JSON.stringify(newLikedBy), postId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Mood board unlike error:', error);
+    res.status(500).json({ error: '取消讚失敗', details: error.message });
+  }
+});
+
+app.delete('/api/mood-board/posts/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not available' });
+    }
+
+    const postId = parseInt(req.params.id);
+    const userId = req.user.id;
+
+    const post = await db.get('SELECT * FROM mood_board_posts WHERE id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: '留言不存在' });
+    }
+
+    // 只允許作者刪除自己的留言
+    if (post.userId !== userId) {
+      return res.status(403).json({ error: '無權限刪除此留言' });
+    }
+
+    await db.run('DELETE FROM mood_board_posts WHERE id = ?', [postId]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Mood board delete error:', error);
+    res.status(500).json({ error: '刪除失敗', details: error.message });
   }
 });
 
