@@ -23,6 +23,7 @@ import {
   query, 
   where, 
   addDoc,
+  deleteDoc,
   orderBy,
   Timestamp
 } from 'firebase/firestore';
@@ -650,7 +651,7 @@ export const apiFirebase = {
           throw new Error('無權限刪除此留言');
         }
 
-        await postRef.delete();
+        await deleteDoc(postRef);
       } catch (error: any) {
         console.error('刪除留言失敗:', error);
         throw new Error(error.message || '刪除留言失敗');
