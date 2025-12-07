@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Camera, Activity, User, MessageCircle, Music, Heart } from 'lucide-react';
+import { PieChart, Camera, Activity, User, MessageCircle, Music2 } from 'lucide-react';
 import { AppTab } from '../types';
 
 interface TabIconProps {
@@ -21,10 +21,8 @@ export const TabIcon: React.FC<TabIconProps> = ({ tab, isActive }) => {
       return <Camera size={size} color={color} />;
     case AppTab.DIARY:
       return <Activity size={size} color={color} />;
-    case AppTab.MUSIC:
-      return <Music size={size} color={color} />;
-    case AppTab.MOOD_BOARD:
-      return <Heart size={size} color={color} />;
+    case AppTab.ENTERTAINMENT:
+      return <Music2 size={size} color={color} />;
     case AppTab.PROFILE:
       return <User size={size} color={color} />;
     default:

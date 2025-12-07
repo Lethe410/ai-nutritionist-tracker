@@ -3,8 +3,7 @@ export enum AppTab {
   AI_CHAT = 'ai_chat',
   RECORD = 'record',
   DIARY = 'diary',
-  MUSIC = 'music',
-  MOOD_BOARD = 'mood_board',
+  ENTERTAINMENT = 'entertainment',
   PROFILE = 'profile'
 }
 

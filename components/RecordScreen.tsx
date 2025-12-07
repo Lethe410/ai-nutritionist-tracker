@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Edit2, Trash2, Camera, Plus, Loader2, ArrowLeft, Check, X, Wand2 } from 'lucide-react';
+import { Edit2, Trash2, Camera, Plus, Loader2, ArrowLeft, Check, X, Wand2, Type } from 'lucide-react';
 import { FoodItem, MealEntry } from '../types';
 import { api } from '../services/api';
 
@@ -15,6 +15,10 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
   const [mealType, setMealType] = useState<'Breakfast'|'Lunch'|'Dinner'|'Snack'>('Lunch');
   const [showMealSelector, setShowMealSelector] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [inputMode, setInputMode] = useState<'photo' | 'text'>('photo'); // 新增：輸入模式
+  const [textInput, setTextInput] = useState(''); // 新增：文字輸入
+  const [textPortion, setTextPortion] = useState('1份'); // 新增：份量輸入
+  const [isProcessingText, setIsProcessingText] = useState(false); // 新增：處理文字中
   
   // Edit Modal State
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
@@ -239,32 +243,135 @@ const RecordScreen: React.FC<RecordScreenProps> = ({ onSave }) => {
     }
   };
 
-  // 1. Initial State: Upload
+  // 處理文字輸入評估
+  const handleTextEstimate = async () => {
+    if (!textInput.trim()) {
+      alert('請輸入食物名稱');
+      return;
+    }
+
+    setIsProcessingText(true);
+    try {
+      const nutrition = await api.ai.estimateNutrition(textInput.trim(), textPortion);
+      const newItem: FoodItem = {
+        id: Date.now().toString(),
+        name: textInput.trim(),
+        portion: textPortion,
+        calories: nutrition.calories || 0,
+        protein: nutrition.protein || 0,
+        carbs: nutrition.carbs || 0,
+        fat: nutrition.fat || 0
+      };
+      setFoodItems([newItem]);
+      setImage('https://via.placeholder.com/200?text=Food'); // 使用 placeholder 圖片
+      setTextInput('');
+      setTextPortion('1份');
+    } catch (error: any) {
+      console.error('Text estimate failed', error);
+      const errorMsg = error?.message || '未知錯誤';
+      alert(`評估失敗：${errorMsg}\n\n請確認：\n1. 已登入帳號\n2. 後端伺服器正在運行\n3. API Key 已正確設定`);
+    } finally {
+      setIsProcessingText(false);
+    }
+  };
+
+  // 1. Initial State: Upload or Text Input
   if (!image) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 pb-24 bg-white">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">紀錄你的每一餐</h2>
-          <p className="text-gray-500">拍照或上傳圖片，AI 為你自動計算熱量</p>
+          <p className="text-gray-500">拍照上傳或輸入文字，AI 為你自動計算熱量</p>
         </div>
 
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="w-64 h-64 bg-gray-50 border-2 border-dashed border-green-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 transition-colors"
-        >
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-            <Camera size={40} />
-          </div>
-          <span className="font-bold text-green-600">拍照或上傳</span>
+        {/* 模式切換按鈕 */}
+        <div className="mb-6 flex gap-2 bg-gray-100 rounded-xl p-1">
+          <button
+            onClick={() => setInputMode('photo')}
+            className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              inputMode === 'photo'
+                ? 'bg-white text-green-600 shadow-sm'
+                : 'text-gray-600'
+            }`}
+          >
+            <Camera size={18} className="inline mr-2" />
+            拍照
+          </button>
+          <button
+            onClick={() => setInputMode('text')}
+            className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              inputMode === 'text'
+                ? 'bg-white text-green-600 shadow-sm'
+                : 'text-gray-600'
+            }`}
+          >
+            <Type size={18} className="inline mr-2" />
+            文字輸入
+          </button>
         </div>
-        
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          onChange={handleImageUpload} 
-        />
+
+        {inputMode === 'photo' ? (
+          <>
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-64 h-64 bg-gray-50 border-2 border-dashed border-green-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 transition-colors"
+            >
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                <Camera size={40} />
+              </div>
+              <span className="font-bold text-green-600">拍照或上傳</span>
+            </div>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+            />
+          </>
+        ) : (
+          <div className="w-full max-w-sm space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">食物名稱</label>
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleTextEstimate()}
+                placeholder="例如：一碗滷肉飯、雞胸肉 200g"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">份量（選填）</label>
+              <input
+                type="text"
+                value={textPortion}
+                onChange={(e) => setTextPortion(e.target.value)}
+                placeholder="例如：1份、200g、1碗"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              />
+            </div>
+            <button
+              onClick={handleTextEstimate}
+              disabled={isProcessingText || !textInput.trim()}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isProcessingText ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  <span>AI 評估中...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 size={20} />
+                  <span>開始評估熱量</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     );
   }

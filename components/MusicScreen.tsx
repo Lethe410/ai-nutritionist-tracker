@@ -38,7 +38,7 @@ const MusicScreen: React.FC = () => {
   };
 
   return (
-    <div className="p-5 pb-28 space-y-6">
+    <div className="p-5 pb-8 space-y-6">
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
           <Headphones className="w-6 h-6" />

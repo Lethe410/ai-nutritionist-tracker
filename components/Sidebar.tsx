@@ -55,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { tab: AppTab.AI_CHAT, icon: MessageSquare, label: 'AI 聊天' },
     { tab: AppTab.RECORD, icon: Camera, label: '記錄' },
     { tab: AppTab.DIARY, icon: BookOpen, label: '日記' },
-    { tab: AppTab.MUSIC, icon: Music2, label: '音樂' },
+    { tab: AppTab.ENTERTAINMENT, icon: Music2, label: '娛樂' },
     { tab: AppTab.PROFILE, icon: Settings, label: '設定' },
   ];
 
@@ -231,6 +231,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="p-4 border-t border-gray-200">
             <button
               onClick={() => {
+                const ok = window.confirm('確定要登出嗎？\n\n登出後將需要重新登入才能繼續使用 AI 功能。');
+                if (!ok) return;
                 onLogout();
                 onClose();
               }}

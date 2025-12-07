@@ -59,7 +59,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, onUpdateProfile,
             <h2 className="text-xl font-bold text-gray-800">個人檔案 & TDEE</h2>
           </div>
           <button 
-            onClick={onLogout}
+            onClick={() => {
+              const ok = window.confirm('確定要登出嗎？\n\n登出後將需要重新登入才能繼續使用 AI 功能。');
+              if (!ok) return;
+              onLogout();
+            }}
             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="登出"
           >

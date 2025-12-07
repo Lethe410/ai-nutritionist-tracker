@@ -137,7 +137,7 @@ const MoodBoardScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 pb-32">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 pb-8">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* 標題 */}
         <div className="mb-6">

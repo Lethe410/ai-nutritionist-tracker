@@ -73,8 +73,8 @@ const AiChatScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 pb-20">
-      <div className="bg-white px-4 py-4 shadow-sm border-b border-gray-100 flex items-center gap-2 sticky top-0 z-10">
+    <div className="flex flex-col h-full bg-gradient-to-b from-emerald-50/70 via-white to-emerald-50/60 pb-20">
+      <div className="px-4 pt-4 pb-3 flex items-center gap-2 sticky top-0 z-10 bg-gradient-to-b from-emerald-50/90 via-white to-white/90 border-b border-emerald-100/60">
         <div className="p-2 bg-green-100 rounded-full">
           <Bot size={20} className="text-green-600" />
         </div>
@@ -87,7 +87,9 @@ const AiChatScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      {/* 對話區域 */}
+      <div className="flex-1 overflow-y-auto px-3 pt-4 pb-6">
+        <div className="max-w-md mx-auto space-y-4">
         {messages.map((msg) => (
           <div 
             key={msg.id} 
@@ -103,10 +105,10 @@ const AiChatScreen: React.FC = () => {
               )}
             </div>
 
-            <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+            <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-md ${
               msg.role === 'user' 
-                ? 'bg-green-600 text-white rounded-tr-none' 
-                : 'bg-white text-gray-700 border border-gray-100 rounded-tl-none'
+                ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-tr-none' 
+                : 'bg-white/95 text-gray-700 border border-emerald-50 rounded-tl-none backdrop-blur-sm'
             }`}>
               {msg.text}
             </div>
@@ -118,7 +120,7 @@ const AiChatScreen: React.FC = () => {
              <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center">
                 <Sparkles size={14} className="text-green-500" />
              </div>
-             <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 flex items-center gap-1.5">
+             <div className="bg-white/95 px-4 py-3 rounded-2xl rounded-tl-none border border-emerald-50 flex items-center gap-1.5 shadow-md">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
@@ -126,22 +128,24 @@ const AiChatScreen: React.FC = () => {
           </div>
         )}
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      <div className="p-4 bg-white border-t border-gray-100 sticky bottom-[64px]">
-        <div className="flex gap-2">
+      {/* 輸入區域 */}
+      <div className="p-3 bg-gradient-to-t from-white/90 via-white/95 to-white/80 border-t border-emerald-100 sticky bottom-[72px]">
+        <div className="max-w-md mx-auto flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder="詢問關於食物熱量或營養建議..."
-            className="flex-1 bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none text-sm text-gray-900"
+            className="flex-1 bg-white/90 border border-emerald-100 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm text-gray-900 shadow-sm"
           />
           <button 
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.95]"
+            className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white px-4 py-3 rounded-2xl hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.96] shadow-md"
           >
             <Send size={20} />
           </button>
