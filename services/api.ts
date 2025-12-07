@@ -1,4 +1,4 @@
-import { MealEntry, MusicTrack, MoodType, UserProfile } from '../types';
+import { MealEntry, MusicTrack, MoodType, UserProfile, MoodBoardPost, EmojiType } from '../types';
 
 // Switch to TRUE when running the backend server
 export const ENABLE_BACKEND = true;
@@ -359,7 +359,7 @@ export const api = {
     }
   },
 
-  music: {
+    music: {
     getRecommendations: async (mood: MoodType): Promise<MusicTrack[]> => {
       if (!ENABLE_BACKEND) {
         return [];
@@ -376,6 +376,89 @@ export const api = {
           // 非 JSON 回應，忽略細節
         }
         throw new Error(errorMessage);
+      }
+      return res.json();
+    }
+  },
+
+  moodBoard: {
+    getPosts: async (): Promise<MoodBoardPost[]> => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.getPosts();
+      }
+      if (!ENABLE_BACKEND) {
+        return [];
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts`, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        throw new Error('無法取得留言');
+      }
+      return res.json();
+    },
+    createPost: async (post: { emoji: EmojiType; content: string }) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.createPost(post);
+      }
+      if (!ENABLE_BACKEND) {
+        return { success: true };
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(post)
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '無法發布留言');
+      }
+      return res.json();
+    },
+    likePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.likePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        return { success: true };
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/like`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error('無法按讚');
+      }
+      return res.json();
+    },
+    unlikePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.unlikePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        return { success: true };
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/unlike`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error('無法取消讚');
+      }
+      return res.json();
+    },
+    deletePost: async (postId: string) => {
+      if (USE_FIREBASE) {
+        return apiFirebase.moodBoard.deletePost(postId);
+      }
+      if (!ENABLE_BACKEND) {
+        return { success: true };
+      }
+      const res = await fetch(`${API_URL}/mood-board/posts/${postId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '無法刪除留言');
       }
       return res.json();
     }
