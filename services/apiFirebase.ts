@@ -233,7 +233,8 @@ export const apiFirebase = {
             activityLevel: data.activityLevel || '',
             goal: data.goal || '',
             tdee: data.tdee || 0,
-            targetCalories: data.targetCalories || 0
+            targetCalories: data.targetCalories || 0,
+            healthFocus: data.healthFocus || 'general'
           };
         }
         return {};
