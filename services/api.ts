@@ -382,20 +382,20 @@ export const api = {
   },
 
   moodBoard: {
-    getPosts: async (): Promise<MoodBoardPost[]> => {
+    getPosts: async (category: string = 'general'): Promise<MoodBoardPost[]> => {
       if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.getPosts();
+        return apiFirebase.moodBoard.getPosts(category);
       }
       if (!ENABLE_BACKEND) {
         return [];
       }
-      const res = await fetch(`${API_URL}/mood-board/posts`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_URL}/mood-board/posts?category=${category}`, { headers: getAuthHeaders() });
       if (!res.ok) {
         throw new Error('無法取得留言');
       }
       return res.json();
     },
-    createPost: async (post: { emoji: EmojiType; content: string }) => {
+    createPost: async (post: { emoji: EmojiType; content: string; category?: string }) => {
       if (USE_FIREBASE) {
         return apiFirebase.moodBoard.createPost(post);
       }

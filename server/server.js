@@ -191,48 +191,60 @@ let db;
   });
     console.log('✅ Database initialized successfully');
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE,
-      password TEXT,
-      nickname TEXT,
-      gender TEXT,
-      age INTEGER,
-      height INTEGER,
-      weight INTEGER,
-      activityLevel TEXT,
-      goal TEXT,
-      tdee INTEGER,
-      targetCalories INTEGER
-    );
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password TEXT,
+        nickname TEXT,
+        gender TEXT,
+        age INTEGER,
+        height INTEGER,
+        weight INTEGER,
+        activityLevel TEXT,
+        goal TEXT,
+        tdee INTEGER,
+        targetCalories INTEGER,
+        healthFocus TEXT
+      );
 
-    CREATE TABLE IF NOT EXISTS diary_entries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER,
-      date TEXT,
-      type TEXT,
-      title TEXT,
-      description TEXT,
-      calories INTEGER,
-      time TEXT,
-      imageUrl TEXT,
-      ingredients TEXT,
-      FOREIGN KEY(userId) REFERENCES users(id)
-    );
+      CREATE TABLE IF NOT EXISTS diary_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        date TEXT,
+        type TEXT,
+        title TEXT,
+        description TEXT,
+        calories INTEGER,
+        time TEXT,
+        imageUrl TEXT,
+        ingredients TEXT,
+        FOREIGN KEY(userId) REFERENCES users(id)
+      );
 
-    CREATE TABLE IF NOT EXISTS mood_board_posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER,
-      userNickname TEXT,
-      emoji TEXT,
-      content TEXT,
-      likes INTEGER DEFAULT 0,
-      likedBy TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(userId) REFERENCES users(id)
-    );
-  `);
+      CREATE TABLE IF NOT EXISTS mood_board_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        userNickname TEXT,
+        emoji TEXT,
+        content TEXT,
+        likes INTEGER DEFAULT 0,
+        likedBy TEXT,
+        category TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(userId) REFERENCES users(id)
+      );
+    `);
+    
+    // Add missing columns if tables already exist (SQLite doesn't support IF NOT EXISTS in ALTER TABLE)
+    try {
+      await db.exec('ALTER TABLE users ADD COLUMN healthFocus TEXT');
+    } catch (e) { /* ignore if column exists */ }
+    
+    try {
+      await db.exec('ALTER TABLE mood_board_posts ADD COLUMN category TEXT');
+    } catch (e) { /* ignore if column exists */ }
+
     console.log('✅ Database tables created/verified');
     
     // Start server after database is ready
@@ -399,15 +411,15 @@ app.post('/api/login', async (req, res) => {
 
 // User Profile
 app.get('/api/profile', authenticateToken, async (req, res) => {
-  const user = await db.get('SELECT nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories FROM users WHERE id = ?', [req.user.id]);
+  const user = await db.get('SELECT nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories, healthFocus FROM users WHERE id = ?', [req.user.id]);
   res.json(user || {});
 });
 
 app.put('/api/profile', authenticateToken, async (req, res) => {
-  const { nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories } = req.body;
+  const { nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories, healthFocus } = req.body;
   await db.run(
-    `UPDATE users SET nickname=?, gender=?, age=?, height=?, weight=?, activityLevel=?, goal=?, tdee=?, targetCalories=? WHERE id=?`,
-    [nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories, req.user.id]
+    `UPDATE users SET nickname=?, gender=?, age=?, height=?, weight=?, activityLevel=?, goal=?, tdee=?, targetCalories=?, healthFocus=? WHERE id=?`,
+    [nickname, gender, age, height, weight, activityLevel, goal, tdee, targetCalories, healthFocus, req.user.id]
   );
   res.json({ success: true });
 });
@@ -741,8 +753,12 @@ app.get('/api/mood-board/posts', authenticateToken, async (req, res) => {
     }
 
     const currentUserId = req.user.id.toString();
+    const category = req.query.category || 'general';
+    
+    // Filter by category
     const posts = await db.all(
-      'SELECT * FROM mood_board_posts ORDER BY createdAt DESC LIMIT 100'
+      'SELECT * FROM mood_board_posts WHERE category = ? ORDER BY createdAt DESC LIMIT 100',
+      [category]
     );
 
     const formattedPosts = posts.map(post => {
@@ -757,6 +773,7 @@ app.get('/api/mood-board/posts', authenticateToken, async (req, res) => {
         likedBy: likedBy,
         isLiked: likedBy.includes(currentUserId), // 標記當前用戶是否已點讚
         isOwner: post.userId === req.user.id, // 標記是否為當前用戶的留言
+        category: post.category,
         createdAt: post.createdAt
       };
     });
@@ -774,19 +791,21 @@ app.post('/api/mood-board/posts', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const { emoji, content } = req.body;
+    const { emoji, content, category } = req.body;
 
     if (!emoji || !content || !content.trim()) {
       return res.status(400).json({ error: '請提供情緒和內容' });
     }
+
+    const postCategory = category || 'general';
 
     // 取得用戶資料
     const profile = await db.get('SELECT nickname FROM profiles WHERE user_id = ?', [req.user.id]);
     const userNickname = profile?.nickname || '匿名';
 
     const result = await db.run(
-      'INSERT INTO mood_board_posts (userId, userNickname, emoji, content, likes, likedBy) VALUES (?, ?, ?, ?, 0, ?)',
-      [req.user.id, userNickname, emoji, content.trim(), JSON.stringify([])]
+      'INSERT INTO mood_board_posts (userId, userNickname, emoji, content, likes, likedBy, category) VALUES (?, ?, ?, ?, 0, ?, ?)',
+      [req.user.id, userNickname, emoji, content.trim(), JSON.stringify([]), postCategory]
     );
 
     res.json({ success: true, id: result.lastID });

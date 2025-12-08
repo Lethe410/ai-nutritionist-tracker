@@ -533,14 +533,38 @@ export const apiFirebase = {
   },
 
   moodBoard: {
-    getPosts: async (): Promise<MoodBoardPost[]> => {
+    getPosts: async (category: string = 'general'): Promise<MoodBoardPost[]> => {
       try {
         const currentUserId = await getCurrentUserId();
-        const q = query(
+        // 嘗試使用 category 過濾
+        // 注意：這需要 Firebase 建立複合索引 (category + createdAt)
+        let q = query(
           collection(db, 'mood_board_posts'),
+          where('category', '==', category),
           orderBy('createdAt', 'desc')
         );
-        const querySnapshot = await getDocs(q);
+        
+        let querySnapshot;
+        try {
+          querySnapshot = await getDocs(q);
+        } catch (error: any) {
+          if (error.code === 'failed-precondition') {
+            console.warn('Firebase 索引缺失，嘗試客戶端過濾:', error);
+            // Fallback: fetch all and filter client-side
+            const fallbackQ = query(collection(db, 'mood_board_posts'), orderBy('createdAt', 'desc'));
+            const fallbackSnapshot = await getDocs(fallbackQ);
+            const filteredDocs = fallbackSnapshot.docs.filter(doc => {
+               const data = doc.data();
+               // 如果沒有 category 欄位，視為 'general'
+               return (data.category || 'general') === category;
+            });
+            // Mock a snapshot structure
+            querySnapshot = { docs: filteredDocs };
+          } else {
+            throw error;
+          }
+        }
+
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
           return {
@@ -553,6 +577,7 @@ export const apiFirebase = {
             likedBy: data.likedBy || [],
             isLiked: (data.likedBy || []).includes(currentUserId),
             isOwner: data.userId === currentUserId,
+            category: data.category || 'general',
             createdAt: data.createdAt?.toDate() || new Date()
           } as MoodBoardPost;
         });
@@ -562,17 +587,19 @@ export const apiFirebase = {
       }
     },
 
-    createPost: async (post: { emoji: EmojiType; content: string }) => {
+    createPost: async (post: { emoji: EmojiType; content: string; category?: string }) => {
       try {
         const userId = await getCurrentUserId();
         const profile = await apiFirebase.user.getProfile();
         const userNickname = profile.nickname || '匿名';
+        const category = post.category || 'general';
 
         const docRef = await addDoc(collection(db, 'mood_board_posts'), {
           userId: userId,
           userNickname: userNickname,
           emoji: post.emoji,
           content: post.content,
+          category: category,
           likes: 0,
           likedBy: [],
           createdAt: Timestamp.now()

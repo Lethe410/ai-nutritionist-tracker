@@ -8,6 +8,16 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 const EMOJI_OPTIONS: EmojiType[] = ['😊', '😢', '😴', '😤', '😌', '🤔', '😍', '🥳', '😎', '😭', '😡', '🤗'];
 
+const HEALTH_FOCUS_MAP: Record<string, string> = {
+  'general': '一般健康',
+  'weight_loss': '體重管理 (減重)',
+  'muscle_gain': '體態雕塑 (增肌)',
+  'diabetes': '血糖控制 (糖尿病)',
+  'hypertension': '血壓管理 (高血壓)',
+  'kidney': '腎臟保健',
+  'heart': '心血管健康'
+};
+
 const MoodBoardScreen: React.FC = () => {
   const [posts, setPosts] = useState<MoodBoardPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,47 +27,64 @@ const MoodBoardScreen: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userNickname, setUserNickname] = useState<string>('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [userCategory, setUserCategory] = useState<string>('general');
 
   useEffect(() => {
-    loadPosts();
-    loadCurrentUser();
+    loadCurrentUserAndPosts();
   }, []);
 
-  const loadCurrentUser = async () => {
+  const loadCurrentUserAndPosts = async () => {
     try {
+      setLoading(true);
+      
+      // Load user first to get category
+      let category = 'general';
+      let uid = null;
+      let nickname = '';
+
       if (USE_FIREBASE) {
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            setCurrentUserId(user.uid);
-            const profile = await api.user.getProfile();
-            setUserNickname(profile.nickname || user.email?.split('@')[0] || '匿名');
-          }
-        });
+         // Firebase auth listener is async, but we can try getting profile if user is already known
+         // For simplicity in this component, we rely on api.user.getProfile() which handles backend switch
+         // But we need auth state first.
+         const profile = await api.user.getProfile();
+         if (profile) {
+            category = profile.healthFocus || 'general';
+            nickname = profile.nickname || '匿名';
+         }
+         // Get UID from auth
+         const currentUser = auth.currentUser;
+         if (currentUser) uid = currentUser.uid;
       } else {
-        // Railway 模式：使用 token 作為臨時標識
-        // 後端會從 JWT 中取得真實的 userId
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          // 使用 token 作為標識（後端會驗證）
-          setCurrentUserId('railway_user'); // 僅用於前端判斷，後端會從 JWT 取得真實 ID
-          const profile = await api.user.getProfile();
-          setUserNickname(profile.nickname || '匿名');
-        }
+         const profile = await api.user.getProfile();
+         if (profile) {
+            category = profile.healthFocus || 'general';
+            nickname = profile.nickname || '匿名';
+         }
+         if (localStorage.getItem('auth_token')) uid = 'railway_user';
       }
+
+      setUserCategory(category);
+      setUserNickname(nickname);
+      setCurrentUserId(uid);
+
+      // Now load posts for this category
+      const data = await api.moodBoard.getPosts(category);
+      setPosts(data);
+
     } catch (error) {
-      console.error('載入用戶資訊失敗:', error);
+      console.error('載入失敗:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadPosts = async () => {
     try {
-      setLoading(true);
-      const data = await api.moodBoard.getPosts();
+      // Don't set full loading, just refresh
+      const data = await api.moodBoard.getPosts(userCategory);
       setPosts(data);
     } catch (error) {
       console.error('載入留言失敗:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,7 +99,8 @@ const MoodBoardScreen: React.FC = () => {
       setSubmitting(true);
       await api.moodBoard.createPost({
         emoji: selectedEmoji,
-        content: content.trim()
+        content: content.trim(),
+        category: userCategory
       });
       setContent('');
       setSelectedEmoji('😊');
@@ -141,8 +169,15 @@ const MoodBoardScreen: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* 標題 */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">情緒留言板</h1>
-          <p className="text-sm text-gray-600">分享你的心情，為他人加油打氣 💚</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">情緒留言板</h1>
+              <p className="text-sm text-gray-600">分享你的心情，為他人加油打氣 💚</p>
+            </div>
+            <div className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">
+              {HEALTH_FOCUS_MAP[userCategory] || '一般健康'} 社群
+            </div>
+          </div>
         </div>
 
         {/* 新增留言表單 */}

@@ -49,6 +49,7 @@ export interface UserProfile {
   goal: string;
   tdee: number;
   targetCalories: number;
+  healthFocus?: string;
 }
 
 export interface ChatMessage {
@@ -81,5 +82,6 @@ export interface MoodBoardPost {
   likedBy: string[]; // Array of user IDs who liked
   isLiked?: boolean; // Optional: whether current user liked (from backend)
   isOwner?: boolean; // Optional: whether current user is the owner (from backend)
+  category?: string;
   createdAt: Date | string;
 }
