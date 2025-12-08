@@ -1,20 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { ChatMessage } from '../types';
+import { Send, Bot, User, Sparkles, Trash2 } from 'lucide-react';
+import { ChatMessage, UserProfile } from '../types';
 import { api } from '../services/api';
 
-const AiChatScreen: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+interface AiChatScreenProps {
+  profile?: UserProfile;
+}
+
+const AiChatScreen: React.FC<AiChatScreenProps> = ({ profile }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('nutriai_chat_history');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        // Convert string timestamps back to Date objects
+        const hydrated = parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(hydrated);
+      } catch (e) {
+        console.error("Failed to parse chat history", e);
+        setMessages(getDefaultMessages());
+      }
+    } else {
+      setMessages(getDefaultMessages());
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('nutriai_chat_history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  const getDefaultMessages = (): ChatMessage[] => [
     {
       id: '1',
       role: 'model',
       text: '你好！我是你的 AI 營養助手，可以幫你分析食物營養、提供飲食建議。有什麼問題嗎？',
       timestamp: new Date()
     }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,6 +57,13 @@ const AiChatScreen: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleClearHistory = () => {
+    if (window.confirm('確定要清除對話紀錄嗎？')) {
+      setMessages(getDefaultMessages());
+      localStorage.removeItem('nutriai_chat_history');
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -39,7 +80,23 @@ const AiChatScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const reply = await api.ai.chat(input);
+      // Construct context string from profile
+      let context = "";
+      if (profile) {
+        context = `
+User Profile:
+- Name: ${profile.nickname || 'User'}
+- Gender: ${profile.gender}
+- Age: ${profile.age}
+- Height: ${profile.height}cm
+- Weight: ${profile.weight}kg
+- Activity Level: ${profile.activityLevel}
+- Goal: ${profile.goal} (Target: ${profile.targetCalories} kcal/day)
+- Health Focus: ${profile.healthFocus || 'General'}
+`;
+      }
+
+      const reply = await api.ai.chat(input, context);
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
@@ -74,17 +131,26 @@ const AiChatScreen: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-emerald-50/70 via-white to-emerald-50/60 pb-20">
-      <div className="px-4 pt-4 pb-3 flex items-center gap-2 sticky top-0 z-10 bg-gradient-to-b from-emerald-50/90 via-white to-white/90 border-b border-emerald-100/60">
-        <div className="p-2 bg-green-100 rounded-full">
-          <Bot size={20} className="text-green-600" />
-        </div>
-        <div>
-          <h2 className="font-bold text-gray-800">AI 營養助手</h2>
-          <div className="flex items-center gap-1.5">
-             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-             <p className="text-xs text-gray-500">線上</p>
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-10 bg-gradient-to-b from-emerald-50/90 via-white to-white/90 border-b border-emerald-100/60">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-green-100 rounded-full">
+            <Bot size={20} className="text-green-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-gray-800">AI 營養助手</h2>
+            <div className="flex items-center gap-1.5">
+               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+               <p className="text-xs text-gray-500">線上</p>
+            </div>
           </div>
         </div>
+        <button 
+          onClick={handleClearHistory}
+          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          title="清除對話紀錄"
+        >
+          <Trash2 size={18} />
+        </button>
       </div>
 
       {/* 對話區域 */}

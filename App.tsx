@@ -150,7 +150,7 @@ const App: React.FC = () => {
       case AppTab.OVERVIEW:
         return <OverviewScreen diaryEntries={diaryEntries} profile={userProfile} />;
       case AppTab.AI_CHAT:
-        return <AiChatScreen />;
+        return <AiChatScreen profile={userProfile} />;
       case AppTab.RECORD:
         return <RecordScreen onSave={handleAddEntry} />;
       case AppTab.DIARY:

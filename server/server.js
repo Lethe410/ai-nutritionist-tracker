@@ -585,7 +585,7 @@ app.post('/api/ai/estimate', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/ai/chat', authenticateToken, async (req, res) => {
-  const { message } = req.body;
+  const { message, context } = req.body;
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
   }
@@ -597,6 +597,8 @@ app.post('/api/ai/chat', authenticateToken, async (req, res) => {
         contents: {
             parts: [{ 
               text: `你是一個友善、專業的 AI 營養助手，能夠提供飲食建議和營養資訊。
+
+${context ? `以下是使用者的個人資料：\n${context}\n請根據以上資料提供個人化的建議。` : ''}
 
 重要提醒：
 - 回答要簡短、直接、重點明確，避免冗長說明

@@ -318,7 +318,7 @@ export const api = {
         throw error;
       }
     },
-    chat: async (message: string) => {
+    chat: async (message: string, context?: string) => {
       // AI 功能始終使用 Railway
       if (!ENABLE_BACKEND) {
         return "抱歉，AI 功能需要後端支持";
@@ -327,7 +327,7 @@ export const api = {
         const res = await fetch(`${API_URL}/ai/chat`, {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ message, context })
         });
         
         if (!res.ok) {
