@@ -33,14 +33,25 @@ const ai = new GoogleGenAI({ apiKey: API_KEY || 'dummy_key' });
 
 // CORS configuration - allow all origins in development, specific origins in production
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.ALLOWED_ORIGINS?.split(',') || [
-        'https://lethe410.github.io',
-        'https://lethe410.github.io/ai-nutritionist-tracker',
-        'http://localhost:5173',
-        'http://localhost:3000'
-      ]
-    : true, // Allow all origins in development
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+      'https://lethe410.github.io',
+      'https://lethe410.github.io/ai-nutritionist-tracker',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://ai-nutritionist-tracker.vercel.app'
+    ];
+    
+    // Check if origin is allowed or if it is a Vercel deployment
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 app.use(cors(corsOptions));
