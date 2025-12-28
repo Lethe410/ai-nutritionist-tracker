@@ -6,8 +6,8 @@ export const ENABLE_BACKEND = true;
 // Switch to TRUE to use Firebase instead of Railway backend
 export const USE_FIREBASE = true; // 設置為 true 以使用 Firebase
 
-// Use environment variable for API URL, fallback to relative path
-const API_URL = (import.meta.env?.VITE_API_URL as string) || '/api';
+// Use relative path for Vercel Serverless Functions
+const API_URL = '/api';
 
 // Import Firebase API (will be used if USE_FIREBASE is true)
 import { apiFirebase } from './apiFirebase';
@@ -17,52 +17,12 @@ const getAuthHeaders = () => {
   return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 };
 
-// 當使用 Firebase 時，為 Railway 後端獲取/創建 token
-const syncRailwayToken = async (email: string, password: string) => {
-  if (!USE_FIREBASE || !ENABLE_BACKEND) return;
-  
-  try {
-    // 嘗試在 Railway 登入
-    const res = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem('auth_token', data.token);
-      return;
-    }
-    
-    // 如果登入失敗，嘗試註冊
-    if (res.status === 401) {
-      const registerRes = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      if (registerRes.ok) {
-        const registerData = await registerRes.json();
-        localStorage.setItem('auth_token', registerData.token);
-      }
-    }
-  } catch (error) {
-    console.warn('同步 Railway token 失敗（AI 功能可能無法使用）:', error);
-    // 不拋出錯誤，因為 Firebase 認證已經成功
-  }
-};
-
 export const api = {
   auth: {
     login: async (email: string, password: string) => {
       // Use Firebase if enabled
       if (USE_FIREBASE) {
-        const result = await apiFirebase.auth.login(email, password);
-        // 同步獲取 Railway token（用於 AI 功能）
-        await syncRailwayToken(email, password);
-        return result;
+        return apiFirebase.auth.login(email, password);
       }
       
       if (!ENABLE_BACKEND) {
@@ -98,10 +58,7 @@ export const api = {
     register: async (email: string, password: string) => {
       // Use Firebase if enabled
       if (USE_FIREBASE) {
-        const result = await apiFirebase.auth.register(email, password);
-        // 同步獲取 Railway token（用於 AI 功能）
-        await syncRailwayToken(email, password);
-        return result;
+        return apiFirebase.auth.register(email, password);
       }
       
        if (!ENABLE_BACKEND) {
@@ -144,25 +101,19 @@ export const api = {
     },
     loginWithGoogle: async () => {
       if (USE_FIREBASE) {
-        const result = await apiFirebase.auth.loginWithGoogle();
-        // 同步獲取 Railway token（用於 AI 功能）
-        // 注意：社交登入沒有密碼，無法同步 Railway token
-        // AI 功能可能需要用戶手動設置密碼或使用其他方式
-        return result;
+        return apiFirebase.auth.loginWithGoogle();
       }
       throw new Error('Google 登入僅支持 Firebase 模式');
     },
     loginWithFacebook: async () => {
       if (USE_FIREBASE) {
-        const result = await apiFirebase.auth.loginWithFacebook();
-        return result;
+        return apiFirebase.auth.loginWithFacebook();
       }
       throw new Error('Facebook 登入僅支持 Firebase 模式');
     },
     loginWithApple: async () => {
       if (USE_FIREBASE) {
-        const result = await apiFirebase.auth.loginWithApple();
-        return result;
+        return apiFirebase.auth.loginWithApple();
       }
       throw new Error('Apple 登入僅支持 Firebase 模式');
     },
@@ -232,13 +183,9 @@ export const api = {
 
   ai: {
     analyzeImage: async (base64Image: string) => {
-      // AI 功能始終使用 Railway（因為 Cloud Functions 需要 Blaze 計劃）
-      // 即使 USE_FIREBASE = true，認證和數據使用 Firebase，但 AI 使用 Railway
-      if (!ENABLE_BACKEND) {
-        return [];
-      }
+      // Always call Vercel Serverless Function for AI analysis
       try {
-        const res = await fetch(`${API_URL}/ai/analyze`, {
+        const res = await fetch(`${API_URL}/analyze`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ image: base64Image })
@@ -247,41 +194,26 @@ export const api = {
           let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
           try {
             const errorData = await res.json();
-            // Handle quota exceeded error (429)
             if (res.status === 429 || errorData.code === 429) {
               errorMessage = errorData.error || 'API 配額已用盡';
-              if (errorData.details) {
-                errorMessage += `\n${errorData.details}`;
-              }
             } else {
               errorMessage = errorData.error || errorData.details || errorMessage;
-              if (errorData.details && errorData.error !== errorData.details) {
-                errorMessage += ` - ${errorData.details}`;
-              }
             }
           } catch (e) {
-            const text = await res.text().catch(() => '');
-            if (text) errorMessage += ` - ${text.substring(0, 100)}`;
+            // ignore
           }
-          console.error('AI Analyze error:', { status: res.status, message: errorMessage });
           throw new Error(errorMessage);
         }
         return await res.json();
       } catch (error: any) {
         console.error('AI Analyze fetch error:', error);
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          throw new Error('無法連接到伺服器。請確認後端伺服器正在運行。');
-        }
         throw error;
       }
     },
     estimateNutrition: async (name: string, portion: string) => {
-      // AI 功能始終使用 Railway
-      if (!ENABLE_BACKEND) {
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      }
+      // Always call Vercel Serverless Function for AI estimation
       try {
-        const res = await fetch(`${API_URL}/ai/estimate`, {
+        const res = await fetch(`${API_URL}/estimate`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ name, portion })
@@ -290,41 +222,26 @@ export const api = {
           let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
           try {
             const errorData = await res.json();
-            // Handle quota exceeded error (429)
             if (res.status === 429 || errorData.code === 429) {
               errorMessage = errorData.error || 'API 配額已用盡';
-              if (errorData.details) {
-                errorMessage += `\n${errorData.details}`;
-              }
             } else {
               errorMessage = errorData.error || errorData.details || errorMessage;
-              if (errorData.details && errorData.error !== errorData.details) {
-                errorMessage += ` - ${errorData.details}`;
-              }
             }
           } catch (e) {
-            const text = await res.text().catch(() => '');
-            if (text) errorMessage += ` - ${text.substring(0, 100)}`;
+            // ignore
           }
-          console.error('AI Estimate error:', { status: res.status, message: errorMessage });
           throw new Error(errorMessage);
         }
         return await res.json();
       } catch (error: any) {
         console.error('AI Estimate fetch error:', error);
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          throw new Error('無法連接到伺服器。請確認後端伺服器正在運行。');
-        }
         throw error;
       }
     },
     chat: async (message: string, context?: string) => {
-      // AI 功能始終使用 Railway
-      if (!ENABLE_BACKEND) {
-        return "抱歉，AI 功能需要後端支持";
-      }
+      // Always call Vercel Serverless Function for AI chat
       try {
-        const res = await fetch(`${API_URL}/ai/chat`, {
+        const res = await fetch(`${API_URL}/chat`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ message, context })
@@ -335,36 +252,28 @@ export const api = {
           try {
             const errorData = await res.json();
             errorMessage = errorData.error || errorData.details || errorMessage;
-            console.error('AI Chat API error:', errorData);
           } catch (e) {
-            const text = await res.text().catch(() => '');
-            console.error('AI Chat API error (non-JSON):', text);
+            // ignore
           }
           return `錯誤：${errorMessage}`;
         }
         
         const data = await res.json();
-        if (!data.reply || data.reply.trim().length === 0) {
-          console.error('AI Chat: Empty reply in response');
-          return "抱歉，AI 沒有產生回應，請稍後再試。";
+        if (!data.reply) {
+          return "抱歉，AI 沒有產生回應。";
         }
         return data.reply;
       } catch (error: any) {
         console.error('AI Chat fetch error:', error);
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          return `錯誤：無法連接到伺服器。請確認後端伺服器正在運行。`;
-        }
         return `錯誤：${error.message || '未知錯誤'}`;
       }
     }
   },
 
-    music: {
+  music: {
     getRecommendations: async (mood: MoodType): Promise<MusicTrack[]> => {
-      if (!ENABLE_BACKEND) {
-        return [];
-      }
-      const res = await fetch(`${API_URL}/music/recommendations?mood=${mood}`, {
+      // Call Vercel Serverless Function
+      const res = await fetch(`${API_URL}/music?mood=${mood}`, {
         headers: getAuthHeaders()
       });
       if (!res.ok) {
@@ -373,7 +282,7 @@ export const api = {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
         } catch {
-          // 非 JSON 回應，忽略細節
+          // ignore
         }
         throw new Error(errorMessage);
       }
@@ -383,84 +292,20 @@ export const api = {
 
   moodBoard: {
     getPosts: async (category: string = 'general'): Promise<MoodBoardPost[]> => {
-      if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.getPosts(category);
-      }
-      if (!ENABLE_BACKEND) {
-        return [];
-      }
-      const res = await fetch(`${API_URL}/mood-board/posts?category=${category}`, { headers: getAuthHeaders() });
-      if (!res.ok) {
-        throw new Error('無法取得留言');
-      }
-      return res.json();
+      // Mood Board is now FULLY handled by Firebase
+      return apiFirebase.moodBoard.getPosts(category);
     },
     createPost: async (post: { emoji: EmojiType; content: string; category?: string }) => {
-      if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.createPost(post);
-      }
-      if (!ENABLE_BACKEND) {
-        return { success: true };
-      }
-      const res = await fetch(`${API_URL}/mood-board/posts`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(post)
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '無法發布留言');
-      }
-      return res.json();
+      return apiFirebase.moodBoard.createPost(post);
     },
     likePost: async (postId: string) => {
-      if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.likePost(postId);
-      }
-      if (!ENABLE_BACKEND) {
-        return { success: true };
-      }
-      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/like`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) {
-        throw new Error('無法按讚');
-      }
-      return res.json();
+      return apiFirebase.moodBoard.likePost(postId);
     },
     unlikePost: async (postId: string) => {
-      if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.unlikePost(postId);
-      }
-      if (!ENABLE_BACKEND) {
-        return { success: true };
-      }
-      const res = await fetch(`${API_URL}/mood-board/posts/${postId}/unlike`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) {
-        throw new Error('無法取消讚');
-      }
-      return res.json();
+      return apiFirebase.moodBoard.unlikePost(postId);
     },
     deletePost: async (postId: string) => {
-      if (USE_FIREBASE) {
-        return apiFirebase.moodBoard.deletePost(postId);
-      }
-      if (!ENABLE_BACKEND) {
-        return { success: true };
-      }
-      const res = await fetch(`${API_URL}/mood-board/posts/${postId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '無法刪除留言');
-      }
-      return res.json();
+      return apiFirebase.moodBoard.deletePost(postId);
     }
   }
 };
